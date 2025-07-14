@@ -5,6 +5,7 @@ import NationalityDropdown from "../../components/shared/Dropdown/NationalityDro
 import CurrencyDropdown from "../../components/shared/Dropdown/CurrencyDropdown";
 import RoadDropdown from "./../../components/shared/Dropdown/RoadDropdown";
 import PriceTable from "../../components/shared/form/PriceTable";
+import { api_url } from "../../utils/ApiClient";
 
 const Excursions = () => {
   const [selectedHotel, setSelectedHotel] = useState(null);
@@ -25,6 +26,10 @@ const Excursions = () => {
   // إضافة حقول الدفع
   const [paid, setPaid] = useState(""); // تغيير القيمة الأولية إلى نص فارغ بدلاً من صفر
   const [unpaid, setUnpaid] = useState(0);
+
+  // إضافة حالة للـ loading والأخطاء
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   // حساب المبلغ المتبقي تلقائيًا عند تغيير المبلغ المدفوع أو السعر الإجمالي
   useEffect(() => {
@@ -86,25 +91,94 @@ const Excursions = () => {
     }
   };
 
-  const handleSubmit = (e) => {
+  // دالة لإرسال البيانات إلى API
+  const sendToAPI = async (requestData) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const response = await fetch(`${api_url}/excursions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-User-Login": "Amr3011",
+        },
+        body: JSON.stringify(requestData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log("API Response:", result);
+
+      // يمكنك إضافة معالجة للرد هنا
+      alert("تم إرسال البيانات بنجاح!");
+
+      return result;
+    } catch (error) {
+      console.error("Error sending data:", error);
+      setError("حدث خطأ أثناء إرسال البيانات: " + error.message);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // الحصول على تاريخ اليوم بتنسيق YYYY-MM-DD
+  const getCurrentDate = () => {
+    const today = new Date();
+    return today.toISOString().split("T")[0];
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     // تحويل قيمة المدفوع إلى رقم عند إرسال النموذج
     const paidAmount = parseFloat(paid) || 0;
 
-    console.log("تم تأكيد الحجز", {
-      hotel: selectedHotel,
-      city: selectedCity,
-      pricing: priceSummary,
-      name,
-      telephone,
-      roomNo,
-      tripDate,
-      tripTime,
-      receiver,
+    // التحقق من البيانات المطلوبة
+    if (
+      !selectedNationality ||
+      !selectedHotel ||
+      !selectedRoad ||
+      !selectedCurrency ||
+      !priceSummary
+    ) {
+      setError("يرجى تعبئة جميع الحقول المطلوبة");
+      return;
+    }
+
+    // تحضير البيانات للإرسال
+    const requestData = {
+      voucherDate: getCurrentDate(), // تاريخ اليوم
+      name: name,
+      nationality: selectedNationality.NationalityCode, // إرسال NationalityCode
+      telephone: telephone,
+      hotel: selectedHotel.HotelCode, // إرسال HotelCode
+      roomNo: roomNo,
+      customer: 999, // ثابت كما طلبت
+      excursion: selectedRoad.RoadCode, // إرسال RoadCode
+      ad: priceSummary.adultCount || 0,
+      child: priceSummary.childCount || 0,
+      inf: priceSummary.infantCount || 0,
+      tripDate: tripDate,
+      tripTime: tripTime,
+      currency: selectedCurrency.CurrencyCode, // إرسال CurrencyCode
+      price: priceSummary.grandTotal || 0,
       paid: paidAmount,
-      unpaid,
-    });
+      unpaid: unpaid,
+      receiver: receiver,
+    };
+
+    console.log("تم تأكيد الحجز", requestData);
+
+    try {
+      await sendToAPI(requestData);
+    } catch (error) {
+      // الخطأ تم معالجته في دالة sendToAPI
+    }
   };
 
   // مكون حقل الإدخال المخصص لإعادة الاستخدام
@@ -146,6 +220,13 @@ const Excursions = () => {
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-6 text-left">Tourist trips</h1>
+
+      {/* عرض رسالة الخطأ */}
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          {error}
+        </div>
+      )}
 
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
@@ -299,9 +380,14 @@ const Excursions = () => {
         <div className="flex flex-col sm:flex-row justify-center items-center">
           <button
             type="submit"
-            className="bg-red-700 hover:bg-red-800 text-white font-bold py-3 px-8 rounded-md w-full sm:w-auto"
+            disabled={isLoading}
+            className={`font-bold py-3 px-8 rounded-md w-full sm:w-auto text-white ${
+              isLoading
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-red-700 hover:bg-red-800"
+            }`}
           >
-            Confirm your reservation{" "}
+            {isLoading ? "جاري الإرسال..." : "Confirm your reservation"}
           </button>
         </div>
       </form>
