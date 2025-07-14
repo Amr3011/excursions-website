@@ -24,12 +24,13 @@ const Excursions = () => {
   const [receiver, setReceiver] = useState("");
 
   // إضافة حقول الدفع
-  const [paid, setPaid] = useState(""); // تغيير القيمة الأولية إلى نص فارغ بدلاً من صفر
+  const [paid, setPaid] = useState("");
   const [unpaid, setUnpaid] = useState(0);
 
   // إضافة حالة للـ loading والأخطاء
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
 
   // حساب المبلغ المتبقي تلقائيًا عند تغيير المبلغ المدفوع أو السعر الإجمالي
   useEffect(() => {
@@ -69,26 +70,6 @@ const Excursions = () => {
   const handlePriceChange = (priceData) => {
     setPriceSummary(priceData);
     console.log("تم تحديث بيانات الأسعار:", priceData);
-
-    // إعادة حساب المبلغ المتبقي عند تغيير السعر الإجمالي
-    if (priceData) {
-      const paidAmount = parseFloat(paid) || 0;
-      const remaining = Math.max(0, priceData.grandTotal - paidAmount);
-      setUnpaid(remaining);
-    }
-  };
-
-  // معالجة تغيير قيمة المبلغ المدفوع - تم تعديل الدالة لتسمح بإدخال أي قيمة نصية
-  const handlePaidChange = (value) => {
-    // السماح بأي قيمة نصية في الحقل
-    setPaid(value);
-
-    // حساب المبلغ المتبقي بناءً على القيمة المدخلة (إذا كانت رقم صالح)
-    if (priceSummary) {
-      const paidAmount = parseFloat(value) || 0;
-      const remaining = Math.max(0, priceSummary.grandTotal - paidAmount);
-      setUnpaid(remaining);
-    }
   };
 
   // دالة لإرسال البيانات إلى API
@@ -114,7 +95,12 @@ const Excursions = () => {
       console.log("API Response:", result);
 
       // يمكنك إضافة معالجة للرد هنا
-      alert("تم إرسال البيانات بنجاح!");
+      setSuccessMessage("تم إرسال البيانات بنجاح!");
+
+      // إخفاء الرسالة بعد 3 ثوان
+      setTimeout(() => {
+        setSuccessMessage(null);
+      }, 3000);
 
       return result;
     } catch (error) {
@@ -181,42 +167,6 @@ const Excursions = () => {
     }
   };
 
-  // مكون حقل الإدخال المخصص لإعادة الاستخدام
-  const InputField = ({
-    label,
-    id,
-    value,
-    onChange,
-    type = "text",
-    placeholder,
-    required = false,
-    disabled = false,
-  }) => (
-    <div className="mb-4">
-      <label
-        htmlFor={id}
-        className="block mb-2 font-bold text-gray-700 text-left"
-      >
-        {label}:
-      </label>
-      <input
-        type={type}
-        id={id}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className={`w-full p-2 border border-gray-300 rounded focus:outline-none ${
-          disabled
-            ? "bg-gray-100"
-            : "focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        } rtl`}
-        dir="rtl"
-        required={required}
-        disabled={disabled}
-      />
-    </div>
-  );
-
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-6 text-left">Tourist trips</h1>
@@ -225,6 +175,48 @@ const Excursions = () => {
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
           {error}
+        </div>
+      )}
+
+      {/* عرض رسالة النجاح */}
+      {successMessage && (
+        <div className="fixed top-4 right-4 bg-green-100 border border-green-400 text-green-700 px-6 py-4 rounded-lg shadow-lg z-50 max-w-sm">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <svg
+                className="h-5 w-5 text-green-400"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium">{successMessage}</p>
+            </div>
+            <div className="ml-auto pl-3">
+              <button
+                onClick={() => setSuccessMessage(null)}
+                className="inline-flex text-green-400 hover:text-green-600"
+              >
+                <svg
+                  className="h-4 w-4"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -239,60 +231,115 @@ const Excursions = () => {
 
               {/* البيانات الشخصية */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <InputField
-                  label="Name"
-                  id="name"
-                  value={name}
-                  onChange={setName}
-                  placeholder="Enter full name"
-                  required
-                />
+                <div className="mb-4">
+                  <label
+                    htmlFor="name"
+                    className="block mb-2 font-bold text-gray-700 text-left"
+                  >
+                    Name:
+                  </label>
+                  <input
+                    type="text"
+                    id="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Enter full name"
+                    className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rtl"
+                    dir="rtl"
+                    required
+                  />
+                </div>
 
-                <InputField
-                  label="Telephone"
-                  id="telephone"
-                  value={telephone}
-                  onChange={setTelephone}
-                  placeholder="Enter phone number"
-                  type="tel"
-                  required
-                />
+                <div className="mb-4">
+                  <label
+                    htmlFor="telephone"
+                    className="block mb-2 font-bold text-gray-700 text-left"
+                  >
+                    Telephone:
+                  </label>
+                  <input
+                    type="tel"
+                    id="telephone"
+                    value={telephone}
+                    onChange={(e) => setTelephone(e.target.value)}
+                    placeholder="Enter phone number"
+                    className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rtl"
+                    dir="rtl"
+                    required
+                  />
+                </div>
 
-                <InputField
-                  label="Room number"
-                  id="roomNo"
-                  value={roomNo}
-                  onChange={setRoomNo}
-                  placeholder="Enter room number"
-                />
+                <div className="mb-4">
+                  <label
+                    htmlFor="roomNo"
+                    className="block mb-2 font-bold text-gray-700 text-left"
+                  >
+                    Room number:
+                  </label>
+                  <input
+                    type="text"
+                    id="roomNo"
+                    value={roomNo}
+                    onChange={(e) => setRoomNo(e.target.value)}
+                    placeholder="Enter room number"
+                    className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rtl"
+                    dir="rtl"
+                  />
+                </div>
 
-                <InputField
-                  label="Receiver"
-                  id="receiver"
-                  value={receiver}
-                  onChange={setReceiver}
-                  placeholder="Enter the recipient's name"
-                />
+                <div className="mb-4">
+                  <label
+                    htmlFor="receiver"
+                    className="block mb-2 font-bold text-gray-700 text-left"
+                  >
+                    Receiver:
+                  </label>
+                  <input
+                    type="text"
+                    id="receiver"
+                    value={receiver}
+                    onChange={(e) => setReceiver(e.target.value)}
+                    placeholder="Enter the recipient's name"
+                    className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rtl"
+                    dir="rtl"
+                  />
+                </div>
 
-                <InputField
-                  label="Trip date"
-                  id="tripDate"
-                  value={tripDate}
-                  onChange={setTripDate}
-                  placeholder="Enter trip date"
-                  type="date"
-                  required
-                />
+                <div className="mb-4">
+                  <label
+                    htmlFor="tripDate"
+                    className="block mb-2 font-bold text-gray-700 text-left"
+                  >
+                    Trip date:
+                  </label>
+                  <input
+                    type="date"
+                    id="tripDate"
+                    value={tripDate}
+                    onChange={(e) => setTripDate(e.target.value)}
+                    className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rtl"
+                    dir="rtl"
+                    required
+                  />
+                </div>
 
-                <InputField
-                  label="Trip time"
-                  id="tripTime"
-                  value={tripTime}
-                  onChange={setTripTime}
-                  placeholder="Enter trip time"
-                  type="time"
-                  required
-                />
+                <div className="mb-4">
+                  <label
+                    htmlFor="tripTime"
+                    className="block mb-2 font-bold text-gray-700 text-left"
+                  >
+                    Trip time:
+                  </label>
+                  <input
+                    type="time"
+                    id="tripTime"
+                    value={tripTime}
+                    onChange={(e) => setTripTime(e.target.value)}
+                    className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rtl"
+                    dir="rtl"
+                    required
+                  />
+                </div>
               </div>
             </div>
 
@@ -351,25 +398,41 @@ const Excursions = () => {
                   Payment data{" "}
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* تم تغيير نوع الحقل إلى "text" بدلاً من "number" */}
-                  <InputField
-                    label="Paid amount"
-                    id="paid"
-                    value={paid}
-                    onChange={handlePaidChange}
-                    placeholder="Enter paid amount"
-                    type="text" // تغيير نوع الحقل
-                    required
-                  />
+                  <div className="mb-4">
+                    <label
+                      htmlFor="paid"
+                      className="block mb-2 font-bold text-gray-700 text-left"
+                    >
+                      Paid amount:
+                    </label>
+                    <input
+                      type="text"
+                      id="paid"
+                      value={paid}
+                      onChange={(e) => setPaid(e.target.value)}
+                      placeholder="Enter paid amount"
+                      className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rtl"
+                      dir="rtl"
+                      required
+                    />
+                  </div>
 
-                  <InputField
-                    label="Unpaid amount"
-                    id="unpaid"
-                    value={unpaid.toFixed(2)}
-                    onChange={() => {}}
-                    type="text"
-                    disabled={true}
-                  />
+                  <div className="mb-4">
+                    <label
+                      htmlFor="unpaid"
+                      className="block mb-2 font-bold text-gray-700 text-left"
+                    >
+                      Unpaid amount:
+                    </label>
+                    <input
+                      type="text"
+                      id="unpaid"
+                      value={unpaid.toFixed(2)}
+                      className="w-full p-2 border border-gray-300 rounded focus:outline-none bg-gray-100 rtl"
+                      dir="rtl"
+                      disabled
+                    />
+                  </div>
                 </div>
               </div>
             )}
