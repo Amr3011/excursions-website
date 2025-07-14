@@ -8,7 +8,24 @@ const NationalityDropdown = ({ onSelectNationality }) => {
   const [nationalityCode, setNationalityCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [isMobileView, setIsMobileView] = useState(false);
 
+  // تحديد ما إذا كانت الشاشة موبايل أو لا
+  useEffect(() => {
+    const checkIfMobile = () => {
+      setIsMobileView(window.innerWidth < 640);
+    };
+
+    // التحقق عند تحميل المكون
+    if (typeof window !== "undefined") {
+      checkIfMobile();
+
+      // التحقق عند تغيير حجم الشاشة
+      window.addEventListener("resize", checkIfMobile);
+
+      return () => window.removeEventListener("resize", checkIfMobile);
+    }
+  }, []);
 
   useEffect(() => {
     const fetchNationalities = async () => {
@@ -29,7 +46,9 @@ const NationalityDropdown = ({ onSelectNationality }) => {
           const processedNationalities = responseData.data.map(
             (nationality) => ({
               ...nationality,
-              NationalityName: nationality.NationalityName.trim(),
+              NationalityName: nationality.NationalityName
+                ? nationality.NationalityName.trim()
+                : "جنسية بدون اسم",
             })
           );
 
@@ -104,80 +123,137 @@ const NationalityDropdown = ({ onSelectNationality }) => {
     }
   };
 
-  return (
-    <div className="my-4">
-      <div className="flex flex-col md:flex-row md:items-end gap-4">
-        {/* حقل البحث بالكود */}
-        <div className="flex-1">
-          <label
-            htmlFor="nationality-code"
-            className="block mb-2 font-bold text-gray-700"
-          >
-            كود الجنسية:
-          </label>
-          <input
-            type="text"
-            id="nationality-code"
-            value={nationalityCode}
-            onChange={handleCodeChange}
-            placeholder="أدخل كود الجنسية"
-            className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rtl"
-            dir="rtl"
-          />
-        </div>
-
-        {/* قائمة الجنسيات المنسدلة */}
-        <div className="flex-1">
-          <label
-            htmlFor="nationality-select"
-            className="block mb-2 font-bold text-gray-700"
-          >
-            اختر الجنسية:
-          </label>
-
-          {isLoading ? (
-            <div className="mt-2 p-2 bg-gray-100 text-gray-600 rounded">
-              جاري التحميل...
-            </div>
-          ) : error ? (
-            <div className="mt-2 p-2 bg-red-100 text-red-700 rounded">
-              خطأ: {error}
-            </div>
-          ) : (
-            <select
-              id="nationality-select"
-              value={selectedNationality}
-              onChange={handleSelectChange}
-              className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rtl"
-              dir="rtl"
-            >
-              <option value="">-- اختر الجنسية --</option>
-              {filteredNationalities.map((nationality) => (
-                <option
-                  key={nationality.NationalityCode}
-                  value={nationality.NationalityCode}
-                >
-                  {nationality.NationalityName} ({nationality.NationalityCode})
-                </option>
-              ))}
-            </select>
-          )}
-        </div>
+  // التخطيط للشاشات الكبيرة
+  const renderDesktopLayout = () => (
+    <div className="flex flex-row items-end gap-4">
+      {/* حقل البحث بالكود - أصغر في العرض */}
+      <div className="w-1/3">
+        <label
+          htmlFor="nationality-code"
+          className="block mb-2 font-bold text-gray-700 text-left"
+        >
+          Nationality code:{" "}
+        </label>
+        <input
+          type="text"
+          id="nationality-code"
+          value={nationalityCode}
+          onChange={handleCodeChange}
+          placeholder="enter nationality code"
+          className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rtl"
+          dir="rtl"
+        />
       </div>
+
+      {/* قائمة الجنسيات المنسدلة - أكبر في العرض */}
+      <div className="w-2/3">
+        <label
+          htmlFor="nationality-select"
+          className="block mb-2 font-bold text-gray-700 text-left"
+        >
+          Select nationality:{" "}
+        </label>
+        {renderNationalitySelect()}
+      </div>
+    </div>
+  );
+
+  // التخطيط للموبايل
+  const renderMobileLayout = () => (
+    <div className="flex flex-col gap-3">
+      {/* قائمة الجنسيات المنسدلة أولاً */}
+      <div>
+        <label
+          htmlFor="nationality-select-mobile"
+          className="block mb-2 font-bold text-gray-700 text-right"
+        >
+          Select nationality:{" "}
+        </label>
+        {renderNationalitySelect("nationality-select-mobile")}
+      </div>
+
+      {/* حقل البحث بالكود ثانياً */}
+      <div className="flex gap-2">
+        <input
+          type="text"
+          id="nationality-code-mobile"
+          value={nationalityCode}
+          onChange={handleCodeChange}
+          placeholder="أدخل كود الجنسية"
+          className="flex-1 p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rtl"
+          dir="rtl"
+        />
+        <label
+          htmlFor="nationality-code-mobile"
+          className="flex items-center font-bold text-gray-700"
+        >
+          Code:
+        </label>
+      </div>
+    </div>
+  );
+
+  // القائمة المنسدلة للجنسيات - مشترك بين التخطيطين
+  const renderNationalitySelect = (id = "nationality-select") => {
+    if (isLoading) {
+      return (
+        <div className="p-2 bg-gray-100 text-gray-600 rounded text-center">
+          Loading...{" "}
+        </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <div className="p-2 bg-red-100 text-red-700 rounded text-center">
+          خطأ: {error}
+        </div>
+      );
+    }
+
+    return (
+      <select
+        id={id}
+        value={selectedNationality}
+        onChange={handleSelectChange}
+        className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rtl"
+        dir="rtl"
+      >
+        <option value="">Choose nationality</option>
+        {filteredNationalities.map((nationality) => (
+          <option
+            key={nationality.NationalityCode}
+            value={nationality.NationalityCode}
+          >
+            {nationality.NationalityName} ({nationality.NationalityCode})
+          </option>
+        ))}
+      </select>
+    );
+  };
+
+  return (
+    <div className="my-3">
+      {/* عرض التخطيط المناسب بناءً على حجم الشاشة */}
+      <div className="hidden sm:block">{renderDesktopLayout()}</div>
+      <div className="sm:hidden">{renderMobileLayout()}</div>
 
       {/* عرض تفاصيل الجنسية المحددة إذا وجدت */}
       {selectedNationality &&
         nationalities.find(
           (n) => n.NationalityCode.toString() === selectedNationality
         ) && (
-          <div className="mt-4 p-3 bg-blue-50 rounded-md border border-blue-200 text-right">
+          <div className="mt-3 p-2 bg-blue-50 rounded-md border border-blue-200 text-left">
             <p className="text-sm text-blue-800">
-              تم اختيار الجنسية:{" "}
-              {
-                nationalities.find(
-                  (n) => n.NationalityCode.toString() === selectedNationality
-                ).NationalityName
-              }
+              Selected {" "}
+              <span className="font-bold">
+                {
+                  nationalities.find(
+                    (n) => n.NationalityCode.toString() === selectedNationality
+                  ).NationalityName
+                }
+              </span>{" "}
+              (Code: {selectedNationality})
             </p>
           </div>
         )}

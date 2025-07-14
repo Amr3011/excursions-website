@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { api_url } from "../../../utils/ApiClient";
 
-const HotelDropdown = ({ onSelectHotel }) => {
-  const [hotels, setHotels] = useState([]);
-  const [filteredHotels, setFilteredHotels] = useState([]);
-  const [selectedHotel, setSelectedHotel] = useState("");
-  const [hotelCode, setHotelCode] = useState("");
+const RoadDropdown = ({ onSelectRoad }) => {
+  const [roads, setRoads] = useState([]);
+  const [filteredRoads, setFilteredRoads] = useState([]);
+  const [selectedRoad, setSelectedRoad] = useState("");
+  const [roadCode, setRoadCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isMobileView, setIsMobileView] = useState(false);
@@ -28,12 +28,12 @@ const HotelDropdown = ({ onSelectHotel }) => {
   }, []);
 
   useEffect(() => {
-    const fetchHotels = async () => {
+    const fetchRoads = async () => {
       setIsLoading(true);
       setError(null);
 
       try {
-        const response = await fetch(`${api_url}/hotels`);
+        const response = await fetch(`${api_url}/roads`);
 
         if (!response.ok) {
           throw new Error(`Error: ${response.status} - ${response.statusText}`);
@@ -42,77 +42,88 @@ const HotelDropdown = ({ onSelectHotel }) => {
         const responseData = await response.json();
 
         if (responseData.success && Array.isArray(responseData.data)) {
-          // تنظيف أسماء الفنادق (إزالة المسافات الزائدة)
-          const processedHotels = responseData.data.map((hotel) => ({
-            ...hotel,
-            HotelName: hotel.HotelName
-              ? hotel.HotelName.trim()
-              : "فندق بدون اسم",
+          // تنظيف أسماء الطرق (إزالة المسافات الزائدة)
+          const processedRoads = responseData.data.map((road) => ({
+            ...road,
+            RoadName: road.RoadName ? road.RoadName.trim() : "طريق بدون اسم",
           }));
 
-          setHotels(processedHotels);
-          setFilteredHotels(processedHotels);
+          setRoads(processedRoads);
+          setFilteredRoads(processedRoads);
         } else {
-          setError("لم يتم العثور على بيانات الفنادق");
+          setError("لم يتم العثور على بيانات الطرق");
         }
       } catch (err) {
         setError(err.message);
-        console.error("Failed to fetch hotels:", err);
+        console.error("Failed to fetch roads:", err);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchHotels();
+    fetchRoads();
   }, []);
 
   // البحث بالكود
   const handleCodeChange = (e) => {
     const code = e.target.value;
-    setHotelCode(code);
+    setRoadCode(code);
 
     if (code) {
-      // البحث عن الفندق بالكود
+      // البحث عن الطريق بالكود - تحويل إلى نص للمقارنة
       const codeNumber = parseInt(code, 10);
-      const found = hotels.find((hotel) => hotel.HotelCode === codeNumber);
+      const found = roads.find((road) => {
+        const roadCodeValue = road.RoadCode;
+        // التعامل مع الكود كرقم أو نص
+        return (
+          roadCodeValue === codeNumber ||
+          roadCodeValue === code ||
+          (typeof roadCodeValue === "string" && roadCodeValue.includes(code)) ||
+          roadCodeValue.toString() === code
+        );
+      });
 
       if (found) {
-        setSelectedHotel(found.HotelCode.toString());
-        if (onSelectHotel) {
-          onSelectHotel(found);
+        setSelectedRoad(found.RoadCode.toString());
+        if (onSelectRoad) {
+          onSelectRoad(found);
         }
       }
 
-      // تصفية القائمة المنسدلة لإظهار الفنادق التي تبدأ بالكود المدخل
-      const filtered = hotels.filter((hotel) =>
-        hotel.HotelCode.toString().startsWith(code)
-      );
-      setFilteredHotels(filtered);
+      // تصفية القائمة المنسدلة - التأكد من تحويل الكود إلى نص للمقارنة
+      const filtered = roads.filter((road) => {
+        const roadCodeString = road.RoadCode.toString();
+        return roadCodeString.includes(code);
+      });
+
+      setFilteredRoads(filtered);
     } else {
-      setFilteredHotels(hotels);
+      setFilteredRoads(roads);
     }
   };
 
-  // اختيار فندق من القائمة المنسدلة
+  // اختيار طريق من القائمة المنسدلة
   const handleSelectChange = (e) => {
     const selectedValue = e.target.value;
-    setSelectedHotel(selectedValue);
+    setSelectedRoad(selectedValue);
 
     if (selectedValue) {
-      const codeNumber = parseInt(selectedValue, 10);
-      const selected = hotels.find((hotel) => hotel.HotelCode === codeNumber);
+      // يمكن أن يكون الكود رقمًا أو نصًا
+      const selected = roads.find(
+        (road) => road.RoadCode.toString() === selectedValue
+      );
 
       if (selected) {
-        setHotelCode(selected.HotelCode.toString());
+        setRoadCode(selected.RoadCode.toString());
 
-        if (onSelectHotel) {
-          onSelectHotel(selected);
+        if (onSelectRoad) {
+          onSelectRoad(selected);
         }
       }
     } else {
-      setHotelCode("");
-      if (onSelectHotel) {
-        onSelectHotel(null);
+      setRoadCode("");
+      if (onSelectRoad) {
+        onSelectRoad(null);
       }
     }
   };
@@ -123,31 +134,31 @@ const HotelDropdown = ({ onSelectHotel }) => {
       {/* حقل البحث بالكود - أصغر في العرض */}
       <div className="w-1/3">
         <label
-          htmlFor="hotel-code"
+          htmlFor="road-code"
           className="block mb-2 font-bold text-gray-700 text-left"
         >
-          Hotel code:{" "}
+          Excursions Code :
         </label>
         <input
           type="text"
-          id="hotel-code"
-          value={hotelCode}
+          id="road-code"
+          value={roadCode}
           onChange={handleCodeChange}
-          placeholder="enter hotel code"
+          placeholder="Enter excursions code"
           className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rtl"
           dir="rtl"
         />
       </div>
 
-      {/* قائمة الفنادق المنسدلة - أكبر في العرض */}
+      {/* قائمة الطرق المنسدلة - أكبر في العرض */}
       <div className="w-2/3">
         <label
-          htmlFor="hotel-select"
+          htmlFor="road-select"
           className="block mb-2 font-bold text-gray-700 text-left"
         >
-          Choose a hotel:{" "}
+          Choose Excursions :{" "}
         </label>
-        {renderHotelSelect()}
+        {renderRoadSelect()}
       </div>
     </div>
   );
@@ -155,40 +166,40 @@ const HotelDropdown = ({ onSelectHotel }) => {
   // التخطيط للموبايل
   const renderMobileLayout = () => (
     <div className="flex flex-col gap-3">
-      {/* قائمة الفنادق المنسدلة أولاً */}
+      {/* قائمة الطرق المنسدلة أولاً */}
       <div>
         <label
-          htmlFor="hotel-select-mobile"
-          className="block mb-2 font-bold text-gray-700 text-right"
+          htmlFor="road-select-mobile"
+          className="block mb-2 font-bold text-gray-700 text-left"
         >
-          Choose a hotel:{" "}
+          Choose Excursions :{" "}
         </label>
-        {renderHotelSelect("hotel-select-mobile")}
+        {renderRoadSelect("road-select-mobile")}
       </div>
 
       {/* حقل البحث بالكود ثانياً */}
       <div className="flex gap-2">
         <input
           type="text"
-          id="hotel-code-mobile"
-          value={hotelCode}
+          id="road-code-mobile"
+          value={roadCode}
           onChange={handleCodeChange}
-          placeholder="أدخل كود الفندق"
+          placeholder="Enter excursions code"
           className="flex-1 p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rtl"
           dir="rtl"
         />
         <label
-          htmlFor="hotel-code-mobile"
+          htmlFor="road-code-mobile"
           className="flex items-center font-bold text-gray-700"
         >
-          الكود:
+          Code Excursions :
         </label>
       </div>
     </div>
   );
 
-  // القائمة المنسدلة للفنادق - مشترك بين التخطيطين
-  const renderHotelSelect = (id = "hotel-select") => {
+  // القائمة المنسدلة للطرق - مشترك بين التخطيطين
+  const renderRoadSelect = (id = "road-select") => {
     if (isLoading) {
       return (
         <div className="p-2 bg-gray-100 text-gray-600 rounded text-center">
@@ -208,15 +219,15 @@ const HotelDropdown = ({ onSelectHotel }) => {
     return (
       <select
         id={id}
-        value={selectedHotel}
+        value={selectedRoad}
         onChange={handleSelectChange}
         className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rtl"
         dir="rtl"
       >
-        <option value="">Choose a hotel</option>
-        {filteredHotels.map((hotel) => (
-          <option key={hotel.HotelCode} value={hotel.HotelCode}>
-            {hotel.HotelName} ({hotel.HotelCode})
+        <option value=""> Choose Excursions</option>
+        {filteredRoads.map((road) => (
+          <option key={road.RoadCode} value={road.RoadCode.toString()}>
+            {road.RoadName} ({road.RoadCode})
           </option>
         ))}
       </select>
@@ -229,19 +240,19 @@ const HotelDropdown = ({ onSelectHotel }) => {
       <div className="hidden sm:block">{renderDesktopLayout()}</div>
       <div className="sm:hidden">{renderMobileLayout()}</div>
 
-      {/* عرض تفاصيل الفندق المحدد إذا وجد */}
-      {selectedHotel &&
-        hotels.find((h) => h.HotelCode.toString() === selectedHotel) && (
+      {/* عرض تفاصيل الطريق المحدد إذا وجد */}
+      {selectedRoad &&
+        roads.find((r) => r.RoadCode.toString() === selectedRoad) && (
           <div className="mt-3 p-2 bg-blue-50 rounded-md border border-blue-200 text-left">
             <p className="text-sm text-blue-800">
-              Selected{" "}
+              Selected {" "}
               <span className="font-bold">
                 {
-                  hotels.find((h) => h.HotelCode.toString() === selectedHotel)
-                    .HotelName
+                  roads.find((r) => r.RoadCode.toString() === selectedRoad)
+                    .RoadName
                 }
               </span>{" "}
-              (Code: {selectedHotel})
+              (Code : {selectedRoad})
             </p>
           </div>
         )}
@@ -249,4 +260,4 @@ const HotelDropdown = ({ onSelectHotel }) => {
   );
 };
 
-export default HotelDropdown;
+export default RoadDropdown;
