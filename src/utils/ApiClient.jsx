@@ -1,0 +1,1 @@
+export const api_url = "https://excursions-api.vercel.app/api";
