@@ -173,7 +173,7 @@ const HotelDropdown = ({ onSelectHotel }) => {
           id="hotel-code-mobile"
           value={hotelCode}
           onChange={handleCodeChange}
-          placeholder="أدخل كود الفندق"
+          placeholder="Enter the hotel code"
           className="flex-1 p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rtl"
           dir="rtl"
         />
@@ -181,7 +181,7 @@ const HotelDropdown = ({ onSelectHotel }) => {
           htmlFor="hotel-code-mobile"
           className="flex items-center font-bold text-gray-700"
         >
-          الكود:
+          Code :
         </label>
       </div>
     </div>

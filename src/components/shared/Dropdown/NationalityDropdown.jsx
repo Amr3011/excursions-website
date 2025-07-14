@@ -179,7 +179,7 @@ const NationalityDropdown = ({ onSelectNationality }) => {
           id="nationality-code-mobile"
           value={nationalityCode}
           onChange={handleCodeChange}
-          placeholder="أدخل كود الجنسية"
+          placeholder="enter nationality code"
           className="flex-1 p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rtl"
           dir="rtl"
         />

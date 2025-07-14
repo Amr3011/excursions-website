@@ -177,7 +177,7 @@ const CityDropdown = ({ onSelectCity }) => {
           htmlFor="city-code-mobile"
           className="flex items-center font-bold text-gray-700"
         >
-          الكود:
+          Code :
         </label>
       </div>
     </div>

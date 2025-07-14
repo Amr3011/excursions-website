@@ -195,7 +195,7 @@ const CurrencyDropdown = ({ onSelectCurrency }) => {
           htmlFor="currency-code-mobile"
           className="flex items-center font-bold text-gray-700"
         >
-          الرمز:
+          Code :
         </label>
       </div>
     </div>
