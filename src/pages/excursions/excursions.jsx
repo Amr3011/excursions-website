@@ -5,6 +5,7 @@ import NationalityDropdown from "../../components/shared/Dropdown/NationalityDro
 import CurrencyDropdown from "../../components/shared/Dropdown/CurrencyDropdown";
 import RoadDropdown from "./../../components/shared/Dropdown/RoadDropdown";
 import PriceTable from "../../components/shared/form/PriceTable";
+import { PDFGenerator, sendPDFToWhatsApp } from "./PDFGenerator";
 import { api_url } from "../../utils/ApiClient";
 
 const Excursions = () => {
@@ -31,6 +32,33 @@ const Excursions = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
+
+  // إضافة رقم الواتس
+  const [whatsappNumber, setWhatsappNumber] = useState("");
+
+  // دالة إعادة تعيين جميع القيم
+  const resetForm = () => {
+    setSelectedHotel(null);
+    setSelectedCity(null);
+    setSelectedNationality(null);
+    setSelectedCurrency(null);
+    setSelectedRoad(null);
+    setPriceSummary(null);
+    setName("");
+    setTelephone("");
+    setRoomNo("");
+    setTripDate("");
+    setTripTime("");
+    setReceiver("");
+    setPaid("");
+    setUnpaid(0);
+    setWhatsappNumber("");
+    setError(null);
+    setSuccessMessage(null);
+
+    // إعادة تعيين الـ dropdowns عن طريق إعادة تحميل الصفحة أو إرسال إشارة reset
+    window.location.reload();
+  };
 
   // حساب المبلغ المتبقي تلقائيًا عند تغيير المبلغ المدفوع أو السعر الإجمالي
   useEffect(() => {
@@ -72,11 +100,58 @@ const Excursions = () => {
     console.log("تم تحديث بيانات الأسعار:", priceData);
   };
 
+  // الحصول على تاريخ اليوم بتنسيق YYYY-MM-DD
+  const getCurrentDate = () => {
+    const today = new Date();
+    return today.toISOString().split("T")[0];
+  };
+
+  // إعداد رقم الواتس (إضافة +2 إذا لم يكن موجود)
+  const formatWhatsAppNumber = (number) => {
+    if (!number) return "";
+
+    // إزالة المسافات والرموز غير المرغوبة
+    const cleanNumber = number.replace(/[^\d]/g, "");
+
+    // إضافة +2 إذا لم يكن موجود
+    if (cleanNumber.startsWith("2")) {
+      return cleanNumber;
+    } else {
+      return `2${cleanNumber}`;
+    }
+  };
+
+  // تحضير بيانات PDF
+  const preparePDFData = (requestData) => {
+    return {
+      voucherDate: requestData.voucherDate,
+      voucherNo: "", // يمكن إضافة رقم الفاوتشر هنا
+      name: requestData.name,
+      roomNo: requestData.roomNo,
+      nationality: selectedNationality?.NationalityName || "",
+      tripDate: requestData.tripDate,
+      hotel: selectedHotel?.HotelName || "",
+      tripTime: requestData.tripTime,
+      excursion: selectedRoad?.RoadName || "",
+      telephone: requestData.telephone,
+      currency: selectedCurrency?.CurrencyName || "",
+      ad: requestData.ad,
+      child: requestData.child,
+      inf: requestData.inf,
+      price: requestData.price,
+      paid: requestData.paid,
+      unpaid: requestData.unpaid,
+      receiver: requestData.receiver,
+    };
+  };
+
   // دالة لإرسال البيانات إلى API
   const sendToAPI = async (requestData) => {
     try {
       setIsLoading(true);
       setError(null);
+
+      console.log("إرسال البيانات إلى API:", requestData);
 
       const response = await fetch(`${api_url}/excursions`, {
         method: "POST",
@@ -94,14 +169,6 @@ const Excursions = () => {
       const result = await response.json();
       console.log("API Response:", result);
 
-      // يمكنك إضافة معالجة للرد هنا
-      setSuccessMessage("تم إرسال البيانات بنجاح!");
-
-      // إخفاء الرسالة بعد 3 ثوان
-      setTimeout(() => {
-        setSuccessMessage(null);
-      }, 3000);
-
       return result;
     } catch (error) {
       console.error("Error sending data:", error);
@@ -112,10 +179,42 @@ const Excursions = () => {
     }
   };
 
-  // الحصول على تاريخ اليوم بتنسيق YYYY-MM-DD
-  const getCurrentDate = () => {
-    const today = new Date();
-    return today.toISOString().split("T")[0];
+  // دالة لإنشاء وإرسال PDF
+  const generateAndSendPDF = async (requestData) => {
+    try {
+      // تحضير بيانات PDF
+      const pdfData = preparePDFData(requestData);
+
+      // إنشاء PDF
+      const pdfGenerator = new PDFGenerator();
+      const doc = pdfGenerator.generateVoucherPDF(pdfData);
+      const pdfBlob = pdfGenerator.getPDFBlob();
+
+      // إنشاء اسم الملف
+      const fileName = `Blue_Bay_Voucher_${requestData.name}_${requestData.voucherDate}.pdf`;
+
+      // تحميل PDF
+      pdfGenerator.downloadPDF(fileName);
+
+      // إرسال تفاصيل الحجز عبر WhatsApp إذا كان رقم الواتس موجود
+      if (whatsappNumber) {
+        const formattedNumber = formatWhatsAppNumber(whatsappNumber);
+        const whatsappResult = sendPDFToWhatsApp(formattedNumber, pdfData);
+
+        if (whatsappResult.success) {
+          setSuccessMessage("تم إنشاء PDF وإرسال تفاصيل الحجز عبر الواتساب!");
+        } else {
+          setError(whatsappResult.message);
+        }
+      } else {
+        setSuccessMessage("تم إنشاء PDF بنجاح!");
+      }
+
+      console.log("تم إنشاء PDF بنجاح");
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      setError("حدث خطأ أثناء إنشاء PDF: " + error.message);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -138,20 +237,20 @@ const Excursions = () => {
 
     // تحضير البيانات للإرسال
     const requestData = {
-      voucherDate: getCurrentDate(), // تاريخ اليوم
+      voucherDate: getCurrentDate(),
       name: name,
-      nationality: selectedNationality.NationalityCode, // إرسال NationalityCode
+      nationality: selectedNationality.NationalityCode,
       telephone: telephone,
-      hotel: selectedHotel.HotelCode, // إرسال HotelCode
+      hotel: selectedHotel.HotelCode,
       roomNo: roomNo,
-      customer: 999, // ثابت كما طلبت
-      excursion: selectedRoad.RoadCode, // إرسال RoadCode
+      customer: 999,
+      excursion: selectedRoad.RoadCode,
       ad: priceSummary.adultCount || 0,
       child: priceSummary.childCount || 0,
       inf: priceSummary.infantCount || 0,
       tripDate: tripDate,
       tripTime: tripTime,
-      currency: selectedCurrency.CurrencyCode, // إرسال CurrencyCode
+      currency: selectedCurrency.CurrencyCode,
       price: priceSummary.grandTotal || 0,
       paid: paidAmount,
       unpaid: unpaid,
@@ -161,9 +260,25 @@ const Excursions = () => {
     console.log("تم تأكيد الحجز", requestData);
 
     try {
+      // إرسال البيانات إلى API أولاً
       await sendToAPI(requestData);
+
+      // إظهار رسالة نجاح لـ API
+      setSuccessMessage("تم حفظ البيانات بنجاح!");
+
+      // إنشاء وإرسال PDF بعد نجاح إرسال البيانات
+      await generateAndSendPDF(requestData);
+
+      // إعادة تعيين النموذج بعد نجاح الإرسال
+      resetForm();
+
+      // إخفاء رسالة النجاح بعد 5 ثوان
+      setTimeout(() => {
+        setSuccessMessage(null);
+      }, 5000);
     } catch (error) {
-      // الخطأ تم معالجته في دالة sendToAPI
+      // الخطأ تم معالجته في الدوال المختصة
+      console.error("Error in handleSubmit:", error);
     }
   };
 
@@ -340,6 +455,25 @@ const Excursions = () => {
                     required
                   />
                 </div>
+
+                {/* حقل رقم الواتس */}
+                <div className="mb-4 md:col-span-2">
+                  <label
+                    htmlFor="whatsappNumber"
+                    className="block mb-2 font-bold text-gray-700 text-left"
+                  >
+                    WhatsApp Number :
+                  </label>
+                  <input
+                    type="tel"
+                    id="whatsappNumber"
+                    value={whatsappNumber}
+                    onChange={(e) => setWhatsappNumber(e.target.value)}
+                    placeholder="Enter WhatsApp number (e.g., 01234567890)"
+                    className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rtl"
+                    dir="rtl"
+                  />
+                </div>
               </div>
             </div>
 
@@ -440,7 +574,7 @@ const Excursions = () => {
         </div>
 
         {/* قسم للإجراءات والزر */}
-        <div className="flex flex-col sm:flex-row justify-center items-center">
+        <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
           <button
             type="submit"
             disabled={isLoading}
