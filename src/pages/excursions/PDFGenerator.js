@@ -119,19 +119,16 @@ export class PDFGenerator {
       this.doc.setLineWidth(0.5);
       this.doc.line(10, 40, 200, 40);
 
-      // معلومات القسيمة
-      const voucherNo =
-        formData.voucherNo || `BB-${Date.now().toString().slice(-6)}`;
+      // معلومات القسيمة - تم إزالة رقم الفاوتشر كما طلبت
       this.doc.setFont("helvetica", "normal");
       this.doc.setFontSize(11);
       this.doc.setTextColor(...textColor);
 
-      this.doc.text("Voucher No :", 15, 50);
-      this.doc.text(voucherNo, 55, 50);
-      this.doc.text("Voucher Date :", 130, 50);
+      // إظهار تاريخ الفاوتشر فقط، بدون رقم الفاوتشر
+      this.doc.text("Voucher Date :", 15, 50);
       this.doc.text(
         formData.voucherDate || new Date().toLocaleDateString(),
-        175,
+        85,
         50
       );
 
