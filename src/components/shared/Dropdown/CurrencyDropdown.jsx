@@ -33,16 +33,25 @@ const CurrencyDropdown = ({ onSelectCurrency }) => {
       setError(null);
 
       try {
-        const response = await fetch(`${api_url}/currencies`);
+        const response = await fetch(`${api_url}/currencies`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json; charset=utf-8",
+            Accept: "application/json; charset=utf-8",
+            "Accept-Charset": "utf-8",
+          },
+        });
 
         if (!response.ok) {
           throw new Error(`Error: ${response.status} - ${response.statusText}`);
         }
 
-        const responseData = await response.json();
+        // تأكد من قراءة الاستجابة بترميز UTF-8
+        const responseText = await response.text();
+        const responseData = JSON.parse(responseText);
 
         if (responseData.success && Array.isArray(responseData.data)) {
-          // تنظيف أسماء العملات (إزالة المسافات الزائدة)
+          // تنظيف أسماء العملات مع الحفاظ على النص العربي
           const processedCurrencies = responseData.data.map((currency) => ({
             ...currency,
             CurrencyName: currency.CurrencyName
@@ -224,8 +233,8 @@ const CurrencyDropdown = ({ onSelectCurrency }) => {
         id={id}
         value={selectedCurrency}
         onChange={handleSelectChange}
-        className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rtl"
-        dir="rtl"
+        className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        style={{ direction: "rtl", fontFamily: "Arial, sans-serif" }}
       >
         <option value="">Choose currency</option>
         {filteredCurrencies.map((currency) => (
@@ -253,8 +262,11 @@ const CurrencyDropdown = ({ onSelectCurrency }) => {
         ) && (
           <div className="mt-3 p-2 bg-blue-50 rounded-md border border-blue-200 text-left">
             <p className="text-sm text-blue-800">
-              Selected {" "}
-              <span className="font-bold">
+              Selected{" "}
+              <span
+                className="font-bold"
+                style={{ direction: "rtl", fontFamily: "Arial, sans-serif" }}
+              >
                 {
                   currencies.find(
                     (c) => c.CurrencyCode.toString() === selectedCurrency
